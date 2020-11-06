@@ -79,8 +79,7 @@ class LARS(Optimizer):
                 global_lr = lr * decay
 
                 # Compute local learning rate for this layer
-                local_lr = eta * weight_norm / \
-                    (grad_norm + weight_decay * weight_norm)
+                local_lr = eta * weight_norm / (grad_norm + weight_decay * weight_norm)
 
                 # Update the momentum term
                 actual_lr = local_lr * global_lr
