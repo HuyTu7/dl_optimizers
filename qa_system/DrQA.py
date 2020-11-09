@@ -11,6 +11,7 @@ import argparse
 from collections import Counter
 import pickle
 from nltk import word_tokenize
+
 nlp = spacy.load('en')
 from preprocess import *
 from metrics import *
@@ -42,6 +43,7 @@ train_dataset = SquadDataset(train_df[:80000], args.batch_size)
 valid_dataset = SquadDataset(valid_df[:30000], args.batch_size)
 a = next(iter(train_dataset))
 
+
 def create_glove_matrix():
     '''
     Parses the glove word vectors text file and returns a dictionary with the words as
@@ -64,7 +66,9 @@ def create_glove_matrix():
 
     return glove_dict
 
+
 glove_dict = create_glove_matrix()
+
 
 def create_word_embedding(glove_dict):
     '''
@@ -81,9 +85,11 @@ def create_word_embedding(glove_dict):
             pass
     return weights_matrix, words_found
 
+
 weights_matrix, words_found = create_word_embedding(glove_dict)
 print("Total words found in glove vocab: ", words_found)
 np.save('drqaglove_vt.npy', weights_matrix)
+
 
 def weighted_average(x, weights):
     # x = [bs, len, dim]
@@ -97,9 +103,11 @@ def weighted_average(x, weights):
 
     return w
 
+
 def count_parameters(model):
     '''Returns the number of trainable parameters in the model.'''
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
 
 def train(model, train_dataset):
     '''
@@ -266,19 +274,26 @@ def evaluate(predictions):
 
     return exact_match, f1
 
-def load_pretrained_model(curr_model, pretrained_path):
+
+def load_pretrained_model(curr_model, curr_optimizer, pretrained_path):
     try:
-        model_dict = curr_model.state_dict()
-        pretrained_dict = torch.load(pretrained_path)['state_dict']
-        pretrained_dict = {k: v for k, v in pretrained_dict.items() if k in model_dict}
+        model_dict = curr_model.module.state_dict()
+        optim_dict = curr_optimizer.state_dict()
+        load_pretrained = torch.load(pretrained_path)
+        pretrained_model_specs = load_pretrained['model_state_dict']
+        pretrained_model_specs = {k: v for k, v in pretrained_model_specs.items() if k in model_dict}
+        pretrained_optim_specs = load_pretrained['optimizer_state_dict']
+        pretrained_optim_specs = {k: v for k, v in pretrained_optim_specs.items() if k in optim_dict}
 
         # update & load
-        model_dict.update(pretrained_dict)
-        curr_model.load_state_dict(model_dict)
+        model_dict.update(pretrained_model_specs)
+        optim_dict.update(pretrained_optim_specs)
+        curr_model.module.load_state_dict(model_dict)
+        curr_optimizer.load_state_dict(optim_dict)
         print(f"the model loaded successfully")
     except:
         print(f"the pretrained model doesn't exist or it failed to load")
-    return curr_model
+    return curr_model, curr_optimizer
 
 
 if __name__ == '__main__':
@@ -296,15 +311,24 @@ if __name__ == '__main__':
                            args.dropout,
                            device).to(device)
     model = torch.nn.DataParallel(model)
+
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     print(f'The model has {count_parameters(model):,} trainable parameters')
     ckpt_dir_name = "%s_%s" % (args.working_dir, args.batch_size)
-    model = load_pretrained_model(model, "%s/ckpt/%s" % (ckpt_dir_name, "best_weights.pt"))
+    model, optimizer = load_pretrained_model(model, optimizer,
+                                             "%s/ckpt/%s" % (ckpt_dir_name, "best_weights.pt"))
+
     print(args)
-    metrics = {"train_losses": [], "valid_losses": [], "ems": [], "f1s": []}
-    valid_loss_prev = 10000
     ckpt_dir = os.path.join(ckpt_dir_name, 'ckpt')
     os.makedirs(ckpt_dir, exist_ok=True)
+
+    try:
+        metrics = pickle.load(open(os.path.join(ckpt_dir, 'metrics.p'), 'rb'))
+        print("load metric files successfully!")
+    except:
+        metrics = {"train_losses": [], "valid_losses": [], "ems": [], "f1s": []}
+        print("no metric files exist!")
+    valid_loss_prev = 10000
     print("Start training")
     epochs = args.epochs
     lives = 20
@@ -312,10 +336,8 @@ if __name__ == '__main__':
         print(f"Epoch {epoch + 1}")
 
         start_time = time.time()
-
         train_loss = train(model, train_dataset)
         valid_loss, em, f1 = valid(model, valid_dataset)
-
         end_time = time.time()
 
         epoch_mins, epoch_secs = epoch_time(start_time, end_time)
@@ -326,19 +348,18 @@ if __name__ == '__main__':
         metrics['f1s'].append(f1)
 
         if valid_loss < valid_loss_prev:
-            state = {'epoch': epoch, 'state_dict': model.module.state_dict(),
-                     'optimizer': optimizer.state_dict()}
-            fname = os.path.join(ckpt_dir, 'weights_{:03d}.pt'.format(epoch))
-            torch.save(state, fname)
+            state = {'epoch': epoch, 'model_state_dict': model.module.state_dict(),
+                     'optimizer_state_dict': optimizer.state_dict()}
+            # fname = os.path.join(ckpt_dir, 'weights_{:03d}.pt'.format(epoch))
+            # torch.save(state, fname)
             fname = os.path.join(ckpt_dir, 'best_weights.pt'.format(epoch))
             torch.save(state, fname)
         else:
             lives -= 1
             if lives == 0:
                 break
-
         valid_loss_prev = valid_loss
-        pickle.dump(metrics, open('%s/metrics.p' % ckpt_dir, 'wb'))
+        pickle.dump(metrics, open(os.path.join(ckpt_dir, 'metrics.p'), 'wb'))
         print(f"Epoch train loss : {train_loss}| Time: {epoch_mins}m {epoch_secs}s")
         print(f"Epoch valid loss: {valid_loss}")
         print(f"Epoch EM: {em}")
