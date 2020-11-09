@@ -42,7 +42,8 @@ class LARS(Optimizer):
         super(LARS, self).__init__(params, defaults)
 
     def step(self, epoch=None, closure=None):
-        """Performs a single optimization step.
+        """
+        Performs a single optimization step.
         Arguments:
             closure (callable, optional): A closure that reevaluates the model
                 and returns the loss.
