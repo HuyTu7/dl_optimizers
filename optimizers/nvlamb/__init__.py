@@ -1,1 +1,1 @@
-from .nvlamb import Nvlamb
+from .nvlamb import NVLAMB

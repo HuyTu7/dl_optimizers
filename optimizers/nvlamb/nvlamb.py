@@ -1,5 +1,5 @@
 """
-Nvlamb optimizer.
+NVLAMB optimizer.
 """
 
 import collections
@@ -23,7 +23,7 @@ def log_lamb_rs(optimizer: Optimizer, event_writer: SummaryWriter, token_count: 
     for k, v in results.items():
         event_writer.add_histogram(f'lamb/{k}', torch.tensor(v), token_count)
 
-class Nvlamb(Optimizer):
+class NVLAMB(Optimizer):
     """Implements Lamb algorithm.
 
     It has been proposed in `Large Batch Optimization for Deep Learning: Training BERT in 76 minutes`_.
@@ -57,7 +57,7 @@ class Nvlamb(Optimizer):
         defaults = dict(lr=lr, betas=betas, eps=eps,
                         weight_decay=weight_decay)
         self.adam = adam
-        super(Lamb, self).__init__(params, defaults)
+        super(NVLAMB, self).__init__(params, defaults)
 
     def step(self, closure=None):
         """Performs a single optimization step.
@@ -75,6 +75,7 @@ class Nvlamb(Optimizer):
                 if p.grad is None:
                     continue
                 grad = p.grad.data
+                
                 if grad.is_sparse:
                     raise RuntimeError('Lamb does not support sparse gradients, consider SparseAdam instad.')
 

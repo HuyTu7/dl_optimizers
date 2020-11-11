@@ -4,26 +4,33 @@ Lamb optimizer.
 Credit to github.com/cybertronai/pytorch-lamb
 """
 
-import collections
 import math
 
 import torch
+
+
+import collections
 from tensorboardX import SummaryWriter
 from torch.optim import Optimizer
-
-
-def log_lamb_rs(optimizer: Optimizer, event_writer: SummaryWriter, token_count: int):
-    """Log a histogram of trust ratio scalars in across layers."""
-    results = collections.defaultdict(list)
-    for group in optimizer.param_groups:
-        for p in group['params']:
-            state = optimizer.state[p]
-            for i in ('weight_norm', 'adam_norm', 'trust_ratio'):
-                if i in state:
-                    results[i].append(state[i])
-
-    for k, v in results.items():
-        event_writer.add_histogram(f'lamb/{k}', torch.tensor(v), token_count)
+# use the default values here to start with
+#    parser.add_argument('--batch-size', type=int, default=4096, metavar='N',
+#                         help='input batch size for training (default: 64)')
+#     parser.add_argument('--optimizer', type=str, default='lamb', choices=['lamb', 'adam','lars'],
+#                         help='which optimizer to use')
+#     parser.add_argument('--test-batch-size', type=int, default=2048, metavar='N',
+#                         help='input batch size for testing (default: 1000)')
+#     parser.add_argument('--epochs', type=int, default=10, metavar='N',
+#                         help='number of epochs to train (default: 10)')
+#     parser.add_argument('--lr', type=float, default=0.0025, metavar='LR',
+#                         help='learning rate (default: 0.0025)')
+#     parser.add_argument('--wd', type=float, default=0.01, metavar='WD',
+#                         help='weight decay (default: 0.01)')
+#     parser.add_argument('--seed', type=int, default=1, metavar='S',
+#                         help='random seed (default: 1)')
+#     parser.add_argument('--eta', type=int, default=0.001, metavar='e',
+#                         help='LARS coefficient (default: 0.001)')
+#     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
+#                         help='how many batches to wait before logging training status')
 
 class Lamb(Optimizer):
     r"""Implements Lamb algorithm.
@@ -47,7 +54,7 @@ class Lamb(Optimizer):
     """
 
     def __init__(self, params, lr=1e-3, betas=(0.9, 0.999), eps=1e-6,
-                 weight_decay=0, adam=False):
+                 weight_decay=0, adam=False, writer=None):
         if not 0.0 <= lr:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if not 0.0 <= eps:
@@ -59,6 +66,10 @@ class Lamb(Optimizer):
         defaults = dict(lr=lr, betas=betas, eps=eps,
                         weight_decay=weight_decay)
         self.adam = adam
+        if writer:
+            self.writer = writer
+            self.step_num = 0
+
         super(Lamb, self).__init__(params, defaults)
 
     def step(self, closure=None):
@@ -125,5 +136,19 @@ class Lamb(Optimizer):
                     trust_ratio = 1
 
                 p.data.add_(-step_size * trust_ratio, adam_step)
-
+        if self.writer:
+            self.update_tensorboard()
         return loss
+
+    def update_tensorboard(self):
+        """Log a histogram of trust ratio scalars in across layers."""
+        results = collections.defaultdict(list)
+        for group in self.param_groups:
+            for p in group['params']:
+                state = self.state[p]
+                for i in ('weight_norm', 'adam_norm', 'trust_ratio'):
+                    if i in state:
+                        results[i].append(state[i])
+        for k, v in results.items():
+            self.writer.add_histogram(f'{"adam" if self.adam else "lamb"}/{k}', torch.tensor(v), self.step_num)
+        self.step_num += 1

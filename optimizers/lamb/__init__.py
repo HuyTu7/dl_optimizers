@@ -1,1 +1,1 @@
-from .lamb import Lamb, log_lamb_rs
+from .lamb import Lamb
