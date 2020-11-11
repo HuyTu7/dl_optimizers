@@ -57,7 +57,6 @@ class Lars(Optimizer):
                              .format(weight_decay))
         if eta < 0.0:
             raise ValueError("Invalid LARS coefficient value: {}".format(eta))
-
         self.epoch = 0
         defaults = dict(lr=lr, momentum=momentum,
                         weight_decay=weight_decay,
@@ -78,11 +77,9 @@ class Lars(Optimizer):
         loss = None
         if closure is not None:
             loss = closure()
-
         if epoch is None:
             epoch = self.epoch
             self.epoch += 1
-
         for group in self.param_groups:
             weight_decay = group['weight_decay']
             momentum = group['momentum']
@@ -93,7 +90,6 @@ class Lars(Optimizer):
             for p in group['params']:
                 if p.grad is None:
                     continue
-
                 param_state = self.state[p]
                 d_p = p.grad.data
                 weight_norm = torch.norm(p.data)
@@ -103,17 +99,13 @@ class Lars(Optimizer):
                     self.step_num += 1
 
                 grad_norm = torch.norm(d_p)
-
                 # Global LR computed on polynomial decay schedule
                 decay = (1 - float(epoch) / max_epoch) ** 2
                 global_lr = lr * decay
-
                 # Compute local learning rate for this layer
                 local_lr = eta * weight_norm / (grad_norm + weight_decay * weight_norm)
-
                 # Update the momentum term
                 actual_lr = local_lr * global_lr
-
                 if 'momentum_buffer' not in param_state:
                     buf = param_state['momentum_buffer'] = \
                             torch.zeros_like(p.data)
@@ -123,5 +115,4 @@ class Lars(Optimizer):
                     # print(buf)
                 buf.mul_(momentum).add_(actual_lr, d_p + weight_decay * p.data)
                 p.data.add_(-buf)
-
         return loss
