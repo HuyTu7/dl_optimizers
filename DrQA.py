@@ -23,10 +23,8 @@ from metrics import *
 from models import *
 from torchtext import vocab
 
-sys.path.append("../optimizers/lamb")
-from lamb import Lamb
-sys.path.append("../optimizers/lars")
-from lars import Lars
+from ..optimizers.lamb import Lamb
+from ..optimizers.lars import Lars
 
 
 ap = argparse.ArgumentParser()
