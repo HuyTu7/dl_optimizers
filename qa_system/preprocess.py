@@ -393,3 +393,6 @@ def main():
 
     train_df.to_pickle('drqatrain.pkl')
     valid_df.to_pickle('drqavalid.pkl')
+
+if __name__ == '__main__':
+    main()
