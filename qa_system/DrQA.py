@@ -11,6 +11,10 @@ import argparse
 from collections import Counter
 import pickle
 from nltk import word_tokenize
+import tqdm
+from tensorboardX import SummaryWriter
+from dl_optimizers.optimizers.lamb import Lamb
+from dl_optimizers.optimizers.lars import Lars
 
 nlp = spacy.load('en')
 from preprocess import *
@@ -31,6 +35,16 @@ ap.add_argument('--working_dir', default='train', help='Working directory for ch
 ap.add_argument('--glove_cache', default='glove_cache', help='Word embeddings cache directory')
 ap.add_argument('--random_seed', type=int, default=12345, help='Random seed')
 ap.add_argument('-lr', '--learning_rate', type=float, default=0.001, help='Learning Rate')
+ap.add_argument('--wd', type=float, default=0.01, metavar='WD',
+                        help='weight decay (default: 0.01)')
+ap.add_argument('--seed', type=int, default=4796, metavar='S',
+                    help='random seed (default: 4796)')
+ap.add_argument('--eta', type=int, default=0.001, metavar='e',
+                    help='LARS coefficient (default: 0.001)')
+ap.add_argument('--log-interval', type=int, default=10, metavar='N',
+                    help='how many batches to wait before logging training status')
+ap.add_argument('--optimizer', type=str, default='lamb', choices=['lamb', 'adam','lars'],
+                        help='whichap optimizer to use')
 args = ap.parse_args()
 
 train_df = pd.read_pickle('drqatrain.pkl')
@@ -109,7 +123,7 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def train(model, train_dataset):
+def train(args, epoch, event_writer, model, train_dataset):
     '''
     Trains the model.
     '''
@@ -161,10 +175,14 @@ def train(model, train_dataset):
 
         train_loss += loss.item()
 
+        if batch_count % args.log_interval == 0:
+            step = batch_count * len(batch) + (epoch - 1) * len(train_dataset)
+            event_writer.add_scalar('loss', loss.item(), step)
+
     return train_loss / len(train_dataset)
 
 
-def valid(model, valid_dataset):
+def valid(model, valid_dataset, event_writer:SummaryWriter, epoch):
     '''
     Performs validation.
     '''
@@ -173,9 +191,7 @@ def valid(model, valid_dataset):
 
     valid_loss = 0.
 
-    batch_count = 0
-
-    f1, em = 0., 0.
+    batch_count = 0.
 
     # puts the model in eval mode. Turns off dropout
     model.eval()
@@ -226,6 +242,9 @@ def valid(model, valid_dataset):
                 predictions[id] = pred
 
     em, f1 = evaluate(predictions)
+    event_writer.add_scalar('loss/test_loss', valid_loss / len(valid_dataset), epoch - 1)
+    event_writer.add_scalar('loss/test_em', em, epoch - 1)
+    event_writer.add_scalar('loss/test_f1', f1, epoch - 1)
     return valid_loss / len(valid_dataset), em, f1
 
 
@@ -313,8 +332,19 @@ if __name__ == '__main__':
     model = torch.nn.DataParallel(model)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
+    writer = SummaryWriter()
+    if args.optimizer == 'lamb':
+        optimizer = Lamb(model.parameters(), lr=args.learning_rate, weight_decay=args.wd, betas=(.9, .999), adam=False,
+                         writer=writer)
+    elif args.optimizer == 'lars':
+        optimizer = Lars(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=args.wd, eta=args.eta,
+                         max_epoch=args.epochs + 1, writer=writer)
+    else:
+        # use adam optimizer
+        optimizer = Lamb(model.parameters(), lr=args.learning_rate, weight_decay=args.wd, betas=(.9, .999), adam=True,
+                         writer=writer)
     print(f'The model has {count_parameters(model):,} trainable parameters')
-    ckpt_dir_name = "%s_%s" % (args.working_dir, args.batch_size)
+    ckpt_dir_name = "%s_%s_%s" % (args.working_dir, args.optimizer, args.batch_size)
     model, optimizer = load_pretrained_model(model, optimizer,
                                              "%s/ckpt/%s" % (ckpt_dir_name, "best_weights.pt"))
 
@@ -350,8 +380,6 @@ if __name__ == '__main__':
         if valid_loss < valid_loss_prev:
             state = {'epoch': epoch, 'model_state_dict': model.module.state_dict(),
                      'optimizer_state_dict': optimizer.state_dict()}
-            # fname = os.path.join(ckpt_dir, 'weights_{:03d}.pt'.format(epoch))
-            # torch.save(state, fname)
             fname = os.path.join(ckpt_dir, 'best_weights.pt'.format(epoch))
             torch.save(state, fname)
         else:
