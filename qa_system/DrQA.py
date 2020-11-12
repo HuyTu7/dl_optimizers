@@ -369,12 +369,13 @@ if __name__ == '__main__':
     print("Start training")
     epochs = args.epochs
     lives = 20
+    writer = SummaryWriter()
     for epoch in range(epochs):
         print(f"Epoch {epoch + 1}")
 
         start_time = time.time()
-        train_loss = train(model, train_dataset)
-        valid_loss, em, f1 = valid(model, valid_dataset)
+        train_loss = train(args, epoch, writer, model, train_dataset)
+        valid_loss, em, f1 = valid(model, valid_dataset, writer, epoch)
         end_time = time.time()
 
         epoch_mins, epoch_secs = epoch_time(start_time, end_time)
