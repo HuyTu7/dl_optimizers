@@ -368,7 +368,7 @@ if __name__ == '__main__':
     print("Start training")
     epochs = args.epochs
     lives = 20
-    writer = SummaryWriter()
+    writer = SummaryWriter(logdir=args.optimizer, comment="nlp_%s_%s" % (args.batch_size, args.learning_rate))
     for epoch in range(epochs):
         print(f"Epoch {epoch + 1}")
 
