@@ -183,9 +183,7 @@ def train(args, epoch, event_writer, model, train_dataset):
         train_loss += loss.item()
 
         if batch_count % args.log_interval == 0:
-            import pdb
-            pdb.set_trace()
-            step = batch_count * len(batch) + (epoch - 1) * len(train_dataset)
+            step = batch_count * len(context) + (epoch - 1) * len(train_dataset)
             event_writer.add_scalar('loss', loss.item(), step)
 
     return train_loss / len(train_dataset)
