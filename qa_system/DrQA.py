@@ -338,7 +338,6 @@ if __name__ == '__main__':
                            device).to(device)
     model = torch.nn.DataParallel(model)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
     writer = SummaryWriter()
     if args.optimizer == 'lamb':
         optimizer = Lamb(model.parameters(), lr=args.learning_rate, weight_decay=args.wd, betas=(.9, .999), adam=False,
