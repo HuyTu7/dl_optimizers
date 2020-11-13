@@ -183,6 +183,8 @@ def train(args, epoch, event_writer, model, train_dataset):
         train_loss += loss.item()
 
         if batch_count % args.log_interval == 0:
+            import pdb
+            pdb.set_trace()
             step = batch_count * len(batch) + (epoch - 1) * len(train_dataset)
             event_writer.add_scalar('loss', loss.item(), step)
 
@@ -338,7 +340,7 @@ if __name__ == '__main__':
                            device).to(device)
     model = torch.nn.DataParallel(model)
 
-    writer = SummaryWriter(logdir=args.optimizer, comment="nlp_%s_%s" % (args.batch_size, args.learning_rate))
+    writer = SummaryWriter(comment="_nlp_%s_%s_%s" % (args.optimizer, args.batch_size, args.learning_rate))
     if args.optimizer == 'lamb':
         optimizer = Lamb(model.parameters(), lr=args.learning_rate, weight_decay=args.wd, betas=(.9, .999), adam=False,
                          writer=writer)
