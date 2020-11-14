@@ -1,0 +1,14 @@
+README.md
+setup.cfg
+setup.py
+torchlars/__init__.py
+torchlars/__version__.py
+torchlars/adaptive_lr.cc
+torchlars/adaptive_lr_cuda.cu
+torchlars/lars.py
+torchlars.egg-info/PKG-INFO
+torchlars.egg-info/SOURCES.txt
+torchlars.egg-info/dependency_links.txt
+torchlars.egg-info/not-zip-safe
+torchlars.egg-info/requires.txt
+torchlars.egg-info/top_level.txt
