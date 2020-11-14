@@ -343,7 +343,7 @@ if __name__ == '__main__':
                          writer=writer)
     elif args.optimizer == 'lars':
         base_optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate)
-        optimizer = LARS(optimizer=base_optimizer, eps=1e-8, trust_coef=0.001)
+        optimizer = LARS(optimizer=base_optimizer, eps=1e-8, trust_coef=0.001, writer=writer)
         #optimizer = LARS(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=args.wd, eta=args.eta,
         #                 max_epoch=args.epochs + 1, writer=writer)
     else:
