@@ -26,6 +26,9 @@ from torchtext import vocab
 sys.path.append("../optimizers/lamb")
 from lamb import Lamb
 from torchlars import LARS
+sys.path.append("../optimizers/sgd")
+from sgd import SGD
+
 
 
 ap = argparse.ArgumentParser()
@@ -49,7 +52,7 @@ ap.add_argument('--eta', type=int, default=0.001, metavar='e',
                     help='LARS coefficient (default: 0.001)')
 ap.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
-ap.add_argument('--optimizer', type=str, default='lamb', choices=['lamb', 'adam','lars'],
+ap.add_argument('--optimizer', type=str, default='lamb', choices=['lamb', 'adam', 'lars', 'sgd'],
                         help='whichap optimizer to use')
 args = ap.parse_args()
 
@@ -338,18 +341,19 @@ if __name__ == '__main__':
     model = torch.nn.DataParallel(model)
 
     writer = SummaryWriter(comment="_nlp_%s_%s_%s" % (args.optimizer, args.batch_size, args.learning_rate))
+    weight_decay = args.learning_rate / args.epochs
     if args.optimizer == 'lamb':
-        optimizer = Lamb(model.parameters(), lr=args.learning_rate, weight_decay=args.wd, betas=(.9, .999), adam=False,
-                         writer=writer)
+        optimizer = Lamb(model.parameters(), lr=args.learning_rate, weight_decay=weight_decay,
+                         betas=(.9, .999), adam=False, writer=writer)
     elif args.optimizer == 'lars':
-        base_optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate)
+        base_optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=weight_decay)
         optimizer = LARS(optimizer=base_optimizer, eps=1e-8, trust_coef=0.001, writer=writer)
-        #optimizer = LARS(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=args.wd, eta=args.eta,
-        #                 max_epoch=args.epochs + 1, writer=writer)
+    elif args.optimizer == 'sgd':
+        optimizer = SGD(model.parameters(), momentum=0.9, weight_decay=weight_decay, writer=writer)
     else:
         # use adam optimizer
-        optimizer = Lamb(model.parameters(), lr=args.learning_rate, weight_decay=args.wd, betas=(.9, .999), adam=True,
-                         writer=writer)
+        optimizer = Lamb(model.parameters(), lr=args.learning_rate, weight_decay=weight_decay,
+                         betas=(.9, .999), adam=True, writer=writer)
     print(f'The model has {count_parameters(model):,} trainable parameters')
     ckpt_dir_name = "%s_%s_%s" % (args.working_dir, args.optimizer, args.batch_size)
     model, optimizer = load_pretrained_model(model, optimizer,
