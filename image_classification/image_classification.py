@@ -18,7 +18,7 @@ from torchlars import LARS
 import os
 import pickle
 import sys
-sys.path.append("optimizers/sgd")
+sys.path.append("../optimizers/sgd")
 from sgd import SGD
 
 
