@@ -30,6 +30,7 @@ dl_optimizers/
 - torchtext
 - torchvision
 - spacy
+- tqdm
 
 ### How to run:
 
