@@ -14,6 +14,7 @@ from torch.autograd import Variable
 import torch.optim as optim
 from torchvision import datasets, transforms
 import torch.nn.functional as F
+import pickle
 
 import numpy as np
 
@@ -42,7 +43,7 @@ ap.add_argument('--seed', type=int, default=4796, metavar='S',
                     help='random seed (default: 4796)')
 ap.add_argument('--eta', type=int, default=0.001, metavar='e',
                     help='LARS coefficient (default: 0.001)')
-ap.add_argument('--log-interval', type=int, default=10, metavar='N',
+ap.add_argument('--log-interval', type=int, default=100, metavar='N',
                     help='how many batches to wait before logging training status')
 ap.add_argument('--optimizer', type=str, default='lamb', choices=['lamb', 'adam', 'lars', 'sgd'],
                         help='which optimizer to use')
@@ -384,7 +385,7 @@ def test(model, optimizer, ckpt_dir_name):
         100 * correctk / len(test_loader.dataset)))
     acc_test.append(correct / len(test_loader.dataset))
     topkacc.append(correctk / len(test_loader.dataset))
-
+    return {"top1acc": acc_test[0], "topkacc": topkacc[0]}
 
 def topkaccuracy(output, target, topk=(1,)):
     """Computes the accuracy over the k top predictions for the specified values of k"""
@@ -428,18 +429,22 @@ if __name__ == '__main__':
     os.makedirs(ckpt_dir, exist_ok=True)
     lives = 10
     valid_loss_prev = 1000000
+    results = {}
+    losses = []
+
     for epoch in range(1, args.epochs):
         loss = train(epoch, writer)
+        losses.append(loss)
         if loss < valid_loss_prev:
             valid_loss_prev = loss
             state = {'epoch': epoch, 'model_state_dict': model.state_dict(),
                      'optimizer_state_dict': optimizer.state_dict()}
             fname = os.path.join(ckpt_dir, 'best_weights.pt'.format(epoch))
             torch.save(state, fname)
-
         else:
             lives -= 1
             if lives == 0:
                 break
-
-    test(model, optimizer, ckpt_dir_name)
+    results["loss"] = losses
+    results.update(test(model, optimizer, ckpt_dir_name))
+    pickle.dump(results, open(os.path.join(ckpt_dir, 'results.p'), 'wb'))
