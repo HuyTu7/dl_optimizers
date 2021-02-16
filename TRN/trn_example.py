@@ -231,8 +231,8 @@ def conv_block(in_channels, out_channels, pool=False):
 
 class Net(ImageClassificationBase):
     def __init__(self, in_channels, num_classes):
-        super().__init__()
-
+        #super().__init__()
+        super(Net, self).__init__()
         self.conv1 = conv_block(in_channels, 64)
         self.conv2 = conv_block(64, 128, pool=True)
         self.res1 = nn.Sequential(conv_block(128, 128), conv_block(128, 128), conv_block(128, 128))
@@ -281,6 +281,8 @@ def count_parameters(model):
 
 weight_decay = 1e-4
 model = Net(3, 100)
+model = model.to(device)
+
 temp_fname = "T" if args.temporal else "noT"
 trn_fname = "T" if args.trn else "noT"
 writer = SummaryWriter(comment="_%s_%s_%s_%s_%s" % (temp_fname, trn_fname,
@@ -323,7 +325,6 @@ loss_test = []
 acc_test = []
 topkacc = []  # on test data
 
-model = model.to(device)
 
 
 def train(n_epoch, event_writer):
@@ -425,13 +426,13 @@ if __name__ == '__main__':
     print(args)
     ckpt_dir = os.path.join(ckpt_dir_name, 'ckpt')
     os.makedirs(ckpt_dir, exist_ok=True)
-    lives = 20
+    lives = 10
     valid_loss_prev = 1000000
     for epoch in range(1, args.epochs):
-        loss = train(epoch, event_writer)
+        loss = train(epoch, writer)
         if loss < valid_loss_prev:
             valid_loss_prev = loss
-            state = {'epoch': epoch, 'model_state_dict': model.module.state_dict(),
+            state = {'epoch': epoch, 'model_state_dict': model.state_dict(),
                      'optimizer_state_dict': optimizer.state_dict()}
             fname = os.path.join(ckpt_dir, 'best_weights.pt'.format(epoch))
             torch.save(state, fname)
