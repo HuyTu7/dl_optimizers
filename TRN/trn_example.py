@@ -28,7 +28,8 @@ from tensorboardX import SummaryWriter
 
 sys.path.append("../optimizers/lamb")
 from lamb import Lamb
-from torchlars import LARS
+sys.path.append("../optimizers/lars")
+from lars_extra import Lars
 sys.path.append("../optimizers/sgd")
 from sgd import SGD
 
@@ -296,7 +297,7 @@ if args.temporal:
                          betas=(.9, .999), adam=False, writer=writer)
     elif args.optimizer == 'lars':
         base_optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=weight_decay)
-        optimizer = LARS(optimizer=base_optimizer, eps=1e-8, trust_coef=0.001, writer=writer)
+        optimizer = Lars(optimizer=base_optimizer, eps=1e-8, trust_coef=0.001, writer=writer)
     elif args.optimizer == 'sgd':
         optimizer = SGD(model.parameters(), lr=args.learning_rate, momentum=0.9,
                         weight_decay=weight_decay, writer=writer)
