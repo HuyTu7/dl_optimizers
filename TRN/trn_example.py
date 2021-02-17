@@ -244,12 +244,14 @@ class Net(ImageClassificationBase):
         self.conv3 = conv_block(128, 256, pool=True)
         self.conv4 = conv_block(256, 512, pool=True)
         self.res2 = nn.Sequential(conv_block(512, 512), conv_block(512, 512), conv_block(512, 512))
-        self.conv5 = conv_block(512, 1024, pool=True)
-        self.res3 = nn.Sequential(conv_block(1024, 1024), conv_block(1024, 1024), conv_block(1024, 1024))
+        # self.conv5 = conv_block(512, 1024, pool=True)
+        # self.res3 = nn.Sequential(conv_block(1024, 1024), conv_block(1024, 1024), conv_block(1024, 1024))
+        self.conv5 = conv_block(512, 512, pool=True)
+        self.res3 = nn.Sequential(conv_block(512, 512), conv_block(512, 512), conv_block(512, 512))
 
         if useTRN:
-            self.tcl = TCL(weight_size=(args.batch_size, 1024, 2, 2), ranks=(args.batch_size, 512, 2, 2))
-            self.trl = TRL(ranks=(10, 1, 1, 10), input_size=(args.batch_size, 512, 2, 2), output_size=(args.batch_size, 10))
+            self.tcl = TCL(weight_size=(args.batch_size, 512, 2, 2), ranks=(args.batch_size, 512, 2, 2))
+            self.trl = TRL(ranks=(10, 10, 10, 10), input_size=(args.batch_size, 512, 2, 2), output_size=(args.batch_size, 10))
         else:
             self.flat = nn.Flatten()
             self.lin = nn.Linear(2 * 2 * 1024, 512)
@@ -289,7 +291,7 @@ model = model.to(device)
 
 temp_fname = "T" if args.temporal else "noT"
 trn_fname = "T" if args.trn else "noT"
-writer = SummaryWriter(comment="_%s_%s_%s_%s_%s" % (temp_fname, trn_fname,
+writer = SummaryWriter(comment="_%s_%s_%s_%s_%s_512" % (temp_fname, trn_fname,
                                                     args.optimizer, args.batch_size,
                                                     args.learning_rate))
 if args.temporal:
@@ -298,11 +300,11 @@ if args.temporal:
         optimizer = Lamb(model.parameters(), lr=args.learning_rate, weight_decay=weight_decay,
                          betas=(.9, .999), adam=False, writer=writer)
     elif args.optimizer == 'lars':
-        # base_optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=weight_decay)
-        # optimizer = Lars(optimizer=base_optimizer, eps=1e-8, trust_coef=0.001, writer=writer)
-        optimizer = Lars(filter(lambda p: p.requires_grad, model.parameters()),
-                         lr=args.learning_rate, weight_decay=args.wd, eta=args.eta,
-                         max_epoch=args.epochs + 1, writer=writer)
+        base_optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=weight_decay)
+        optimizer = LARS(optimizer=base_optimizer, eps=1e-8, trust_coef=0.001, writer=writer)
+        # optimizer = Lars(filter(lambda p: p.requires_grad, model.parameters()),
+        #                  lr=args.learning_rate, weight_decay=args.wd, eta=args.eta,
+        #                  max_epoch=args.epochs + 1, writer=writer)
     elif args.optimizer == 'sgd':
         optimizer = SGD(model.parameters(), lr=args.learning_rate, momentum=0.9,
                         weight_decay=weight_decay, writer=writer)
