@@ -44,6 +44,8 @@ ap.add_argument('--seed', type=int, default=4796, metavar='S',
                     help='random seed (default: 4796)')
 ap.add_argument('--eta', type=int, default=0.001, metavar='e',
                     help='LARS coefficient (default: 0.001)')
+ap.add_argument('--wd', type=float, default=5e-4, metavar='WD',
+                        help='weight decay (default: 0.01)')
 ap.add_argument('--log-interval', type=int, default=100, metavar='N',
                     help='how many batches to wait before logging training status')
 ap.add_argument('--optimizer', type=str, default='lamb', choices=['lamb', 'adam', 'lars', 'sgd'],
@@ -296,8 +298,11 @@ if args.temporal:
         optimizer = Lamb(model.parameters(), lr=args.learning_rate, weight_decay=weight_decay,
                          betas=(.9, .999), adam=False, writer=writer)
     elif args.optimizer == 'lars':
-        base_optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=weight_decay)
-        optimizer = Lars(optimizer=base_optimizer, eps=1e-8, trust_coef=0.001, writer=writer)
+        # base_optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=weight_decay)
+        # optimizer = Lars(optimizer=base_optimizer, eps=1e-8, trust_coef=0.001, writer=writer)
+        optimizer = Lars(filter(lambda p: p.requires_grad, model.parameters()),
+                         lr=args.lr, weight_decay=args.wd, eta=args.eta,
+                         max_epoch=args.epochs + 1, writer=writer)
     elif args.optimizer == 'sgd':
         optimizer = SGD(model.parameters(), lr=args.learning_rate, momentum=0.9,
                         weight_decay=weight_decay, writer=writer)
