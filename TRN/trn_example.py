@@ -301,7 +301,7 @@ if args.temporal:
         # base_optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=weight_decay)
         # optimizer = Lars(optimizer=base_optimizer, eps=1e-8, trust_coef=0.001, writer=writer)
         optimizer = Lars(filter(lambda p: p.requires_grad, model.parameters()),
-                         lr=args.lr, weight_decay=args.wd, eta=args.eta,
+                         lr=args.learning_rate, weight_decay=args.wd, eta=args.eta,
                          max_epoch=args.epochs + 1, writer=writer)
     elif args.optimizer == 'sgd':
         optimizer = SGD(model.parameters(), lr=args.learning_rate, momentum=0.9,
