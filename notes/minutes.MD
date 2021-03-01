@@ -1,11 +1,8 @@
-## 1/27
-Go through the word file and TRN 
-For TRN: understand does it apply to “deep learning?” how? Yes, Jake’s work uses multi-layer structure.
-Find some related work for TRN + deep learning (+ time-awareness/layer-wise?)
-Rerun the TRN code can already run his code 
-Understand how to do the compression and reconstruction; probably work with some application data
-Include the layer-wise code with TRN for time-aware deep learning
-Possible tasks: (i) image classification; (ii) QA system
+## 3/1
+- read the TRN paper: confirm the structure if the TRN only update the last layer and what are the benefits. 
+- try other datasets (e.g., MNIST)
+- rerun without TRN (with or without Layer-wise) so we have 4 settings: TRN alone, Layer-wise alone, and TRN + Layer-wise
+- check the HPC to run large-batch training for the layer-wise
 
 ## 2/17
 
@@ -40,9 +37,16 @@ Not sure if the top-K accuracy (or even the general accuracy) is an appropriate 
 Next steps:
 try MNIST dataset and also include precision, recall, and f1.
 
-## 3/1
-- read the TRN paper: confirm the structure if the TRN only update the last layer and what are the benefits. 
-- try other datasets (e.g., MNIST)
-- rerun without TRN (with or without Layer-wise) so we have 4 settings: TRN alone, Layer-wise alone, and TRN + Layer-wise
-- check the HPC to run large-batch training for the layer-wise
+## 1/27
+Go through the word file and TRN 
+For TRN: understand does it apply to “deep learning?” how? Yes, Jake’s work uses multi-layer structure.
+Find some related work for TRN + deep learning (+ time-awareness/layer-wise?)
+Rerun the TRN code can already run his code 
+Understand how to do the compression and reconstruction; probably work with some application data
+Include the layer-wise code with TRN for time-aware deep learning
+Possible tasks: (i) image classification; (ii) QA system
+
+
+
+
 
