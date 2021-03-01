@@ -39,3 +39,9 @@ Not sure if the top-K accuracy (or even the general accuracy) is an appropriate 
 
 Next steps:
 try MNIST dataset and also include precision, recall, and f1.
+
+## 3/1
+- read the TRN paper: confirm the structure if the TRN only update the last layer and what are the benefits. 
+- try other datasets (e.g., MNIST)
+- rerun without TRN (with or without Layer-wise) so we have 4 settings: TRN alone, Layer-wise alone, and TRN + Layer-wise
+
