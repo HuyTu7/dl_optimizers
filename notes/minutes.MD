@@ -1,4 +1,4 @@
-**1/27
+## 1/27
 Go through the word file and TRN 
 For TRN: understand does it apply to “deep learning?” how? Yes, Jake’s work uses multi-layer structure.
 Find some related work for TRN + deep learning (+ time-awareness/layer-wise?)
@@ -7,7 +7,7 @@ Understand how to do the compression and reconstruction; probably work with some
 Include the layer-wise code with TRN for time-aware deep learning
 Possible tasks: (i) image classification; (ii) QA system
 
-**2/17
+## 2/17
 
 TRN and LARS: SGD vs. LAMB: Adam ← mini-batch size 
 CIFAR:
@@ -29,12 +29,13 @@ how can it help us
 
 Applications: Image classification- CIFAR, mnist
 
-*** Note:
-For general accuracy metric: 
-As the batch size increases, the performance of LAMB+TRN over SGD+TRN goes from slightly lower to better than.
+### Note:
+For general accuracy metric: as the batch size increases, the performance of LAMB+TRN over SGD+TRN goes from slightly lower to better than.
 Best case, at the batch size of 1K, LAMB+TRN performance is 7% relatively better over SGD+TRN.
+
 Not sure if the top-K accuracy (or even the general accuracy) is an appropriate metric as I check the loss outputs at the end of the training (most likely epoch #200):
-Batch size 512, SGD+TRN=247 whereas LAMB+TRN=0.31
-Batch size 512, SGD+TRN=484 whereas LAMB+TRN=4.8
+- Batch size 512, SGD+TRN=247 whereas LAMB+TRN=0.31
+- Batch size 512, SGD+TRN=484 whereas LAMB+TRN=4.8
+
 Next steps:
 try MNIST dataset and also include precision, recall, and f1.
