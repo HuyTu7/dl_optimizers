@@ -1,3 +1,11 @@
+## 3/24
+accuracy: (TP+TN)/(TP+TN+FP+FN)
+precision: TP/(TP+FP)
+recall: predicted TP/ all TP
+f1: harmonic mean of precision and recall
+slide: https://docs.google.com/presentation/d/1e_-RJp4CJ8t4vwb5PbdYTk5-cykHjNY_eRWqcYVQWaI/edit?usp=sharing
+
+
 ## 3/1
 - read the TRN paper: confirm the structure if the TRN only update the last layer and what are the benefits. 
 - try other datasets (e.g., MNIST)
