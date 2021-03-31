@@ -272,6 +272,7 @@ class Net(ImageClassificationBase):
         out = self.conv3(out)
         out = self.conv4(out)
         out = self.res2(out) + out
+        print(out.shape)
         # out = self.conv5(out)
         # out = self.res3(out) + out
 
@@ -280,6 +281,7 @@ class Net(ImageClassificationBase):
             out = self.trl(out)
         else:
             out = self.flat(out)
+            print(out.shape)
             out = self.lin(out)
             out = self.lin2(out)
 
