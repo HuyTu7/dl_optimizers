@@ -54,10 +54,10 @@ ap.add_argument('--log-interval', type=int, default=100, metavar='N',
                     help='how many batches to wait before logging training status')
 ap.add_argument('--optimizer', type=str, default='lamb', choices=['lamb', 'adam', 'lars', 'sgd'],
                         help='which optimizer to use')
-ap.add_argument('--trn', action='store_true', default=True,
-                        help='which optimizer to use')
+ap.add_argument('--trn', action='store_true',
+                        help='use TRN or not')
 ap.add_argument('-t', '--temporal', action='store_true',
-                        help='which optimizer to use')
+                        help='use layer-wise or not')
 
 args = ap.parse_args()
 
