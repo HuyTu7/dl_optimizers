@@ -258,7 +258,7 @@ class Net(ImageClassificationBase):
             self.trl = TRL(ranks=(10, 1, 1, 10), input_size=(args.batch_size, 512, 2, 2), output_size=(args.batch_size, 10))
         else:
             self.flat = nn.Flatten()
-            self.lin = nn.Linear(args.batch_size, 512)
+            self.lin = nn.Linear(512 * 4 * 4, 512)
             self.lin2 = nn.Linear(512, 10)
 
         # self.classifier = nn.Sequential(nn.MaxPool2d(2),
@@ -272,7 +272,7 @@ class Net(ImageClassificationBase):
         out = self.conv3(out)
         out = self.conv4(out)
         out = self.res2(out) + out
-        print(out.shape)
+        # print(out.shape)
         # out = self.conv5(out)
         # out = self.res3(out) + out
 
@@ -281,7 +281,7 @@ class Net(ImageClassificationBase):
             out = self.trl(out)
         else:
             out = self.flat(out)
-            print(out.shape)
+            # print(out.shape)
             out = self.lin(out)
             out = self.lin2(out)
 
