@@ -250,12 +250,12 @@ class Net(ImageClassificationBase):
         self.res2 = nn.Sequential(conv_block(512, 512), conv_block(512, 512), conv_block(512, 512))
         # self.conv5 = conv_block(512, 1024, pool=True)
         # self.res3 = nn.Sequential(conv_block(1024, 1024), conv_block(1024, 1024), conv_block(1024, 1024))
-        self.conv5 = conv_block(512, 512, pool=True)
-        self.res3 = nn.Sequential(conv_block(512, 512), conv_block(512, 512), conv_block(512, 512))
+        # self.conv5 = conv_block(512, 512, pool=True)
+        # self.res3 = nn.Sequential(conv_block(512, 512), conv_block(512, 512), conv_block(512, 512))
 
         if useTRN:
             self.tcl = TCL(weight_size=(args.batch_size, 512, 2, 2), ranks=(args.batch_size, 512, 2, 2))
-            self.trl = TRL(ranks=(10, 10, 10, 10), input_size=(args.batch_size, 512, 2, 2), output_size=(args.batch_size, 10))
+            self.trl = TRL(ranks=(10, 1, 1, 10), input_size=(args.batch_size, 512, 2, 2), output_size=(args.batch_size, 10))
         else:
             self.flat = nn.Flatten()
             self.lin = nn.Linear(2 * 2 * 1024, 512)
