@@ -272,8 +272,8 @@ class Net(ImageClassificationBase):
         out = self.conv3(out)
         out = self.conv4(out)
         out = self.res2(out) + out
-        out = self.conv5(out)
-        out = self.res3(out) + out
+        # out = self.conv5(out)
+        # out = self.res3(out) + out
 
         if useTRN:
             out = self.tcl(out)
