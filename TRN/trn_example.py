@@ -255,7 +255,7 @@ class Net(ImageClassificationBase):
 
         if useTRN:
             self.tcl = TCL(weight_size=(args.batch_size, 512, 2, 2), ranks=(args.batch_size, 512, 2, 2))
-            self.trl = TRL(ranks=(10, 1, 1, 10), input_size=(args.batch_size, 512, 2, 2), output_size=(args.batch_size, 10))
+            self.trl = TRL(ranks=(10, 10, 10, 10), input_size=(args.batch_size, 512, 2, 2), output_size=(args.batch_size, 10))
         else:
             self.flat = nn.Flatten()
             self.lin = nn.Linear(512 * 4 * 4, 512)
