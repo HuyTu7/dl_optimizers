@@ -8,6 +8,7 @@
 # %%
 import os
 import sys
+import pdb
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
@@ -23,8 +24,11 @@ import tensorly.tenalg as ta
 from tensorly.tenalg import inner
 from tensorly.random import check_random_state
 from tensorly.decomposition import tucker
+from collections import Counter
 
 from tensorboardX import SummaryWriter
+
+from sklearn.metrics import f1_score, precision_score, recall_score, auc, roc_auc_score
 
 sys.path.append("../optimizers/lamb")
 from lamb import Lamb
@@ -50,9 +54,9 @@ ap.add_argument('--log-interval', type=int, default=100, metavar='N',
                     help='how many batches to wait before logging training status')
 ap.add_argument('--optimizer', type=str, default='lamb', choices=['lamb', 'adam', 'lars', 'sgd'],
                         help='which optimizer to use')
-ap.add_argument('--trn', type=bool, default=True,
+ap.add_argument('--trn', action='store_true', default=True,
                         help='which optimizer to use')
-ap.add_argument('--temporal', type=bool, default=True,
+ap.add_argument('-t', '--temporal', action='store_true',
                         help='which optimizer to use')
 
 args = ap.parse_args()
@@ -89,7 +93,7 @@ train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size,
 
 testset = datasets.CIFAR10(root='./data', train=False,
                            download=True, transform=transform)
-test_loader = torch.utils.data.DataLoader(testset, batch_size=args.batch_size,
+test_loader = torch.utils.data.DataLoader(testset, batch_size=int(args.batch_size / 2),
                                           shuffle=False, num_workers=2, drop_last=True)
 
 
@@ -291,7 +295,7 @@ model = model.to(device)
 
 temp_fname = "T" if args.temporal else "noT"
 trn_fname = "T" if args.trn else "noT"
-writer = SummaryWriter(comment="_%s_%s_%s_%s_%s_512" % (temp_fname, trn_fname,
+writer = SummaryWriter(comment="_%s_%s_%s_%s_%s" % (temp_fname, trn_fname,
                                                     args.optimizer, args.batch_size,
                                                     args.learning_rate))
 if args.temporal:
@@ -301,12 +305,12 @@ if args.temporal:
                          betas=(.9, .999), adam=False, writer=writer)
     elif args.optimizer == 'lars':
         base_optimizer = torch.optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=weight_decay)
-        optimizer = LARS(optimizer=base_optimizer, eps=1e-8, trust_coef=0.001, writer=writer)
-        # optimizer = Lars(filter(lambda p: p.requires_grad, model.parameters()),
-        #                  lr=args.learning_rate, weight_decay=args.wd, eta=args.eta,
-        #                  max_epoch=args.epochs + 1, writer=writer)
+        # optimizer = LARS(optimizer=base_optimizer, eps=1e-8, trust_coef=0.001, writer=writer)
+        optimizer = Lars(filter(lambda p: p.requires_grad, model.parameters()),
+                         lr=args.learning_rate, weight_decay=args.wd, eta=args.eta,
+                         max_epoch=args.epochs + 1, writer=writer)
     elif args.optimizer == 'sgd':
-        optimizer = SGD(model.parameters(), lr=args.learning_rate, momentum=0.9,
+        optimizer = SGD(model.parameters(), lr=args.learning_rate, momentum=0.6,
                         weight_decay=weight_decay, writer=writer)
     else:
         # use adam optimizer
@@ -314,7 +318,11 @@ if args.temporal:
                          betas=(.9, .999), adam=True, writer=writer)
     print(f'The model has {count_parameters(model):,} trainable parameters')
 else:
-    optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.6)
+    if args.optimizer == 'sgd':
+        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.6)
+    else:
+        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate,
+                               weight_decay=weight_decay)
 
 criterion = nn.CrossEntropyLoss()
 # Count params
@@ -372,6 +380,10 @@ def test(model, optimizer, ckpt_dir_name):
     test_loss = 0
     correct = 0
     correctk = 0
+    actuals = []
+    predictions = []
+    epsilon = 1e-7
+    # confusion = Counter({"tp": 0, "tn": 0, "fp": 0, "fn": 0})
     for data, target in test_loader:
         data, target = data.to(device), target.to(device)
         output = model(data)
@@ -384,16 +396,46 @@ def test(model, optimizer, ckpt_dir_name):
 
         # Calc top N accuracy
         correctk += topkaccuracy(output, target, topk=(3,))
+        prediction = output.argmax(dim=1, keepdim=True)
+        actuals.extend(target.view_as(prediction))
+        predictions.extend(prediction)
 
+    actuals, predictions = [i.item() for i in actuals], [i.item() for i in predictions]
+    # precision = confusion["tp"] / (confusion["tp"] + confusion["fp"] + epsilon)
+    # recall = confusion["tp"] / (confusion["tp"] + confusion["fn"] + epsilon)
+    f1 = f1_score(actuals, predictions, average='micro')
+    precision = precision_score(actuals, predictions, average='macro')
+    recall = recall_score(actuals, predictions, average='macro')
     test_loss /= len(test_loader.dataset)
+
     print('mean: {}'.format(test_loss))
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%), Top-K Accuracy: {:.0f}%\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset),
-        100 * correctk / len(test_loader.dataset)))
+    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%), Top-K Accuracy: {:.0f}%, Precision: {:.0f}%, Recall: {:.0f}%, F1: {:.0f}%\n'.format(
+            test_loss, correct, len(test_loader.dataset),
+            100. * correct / len(test_loader.dataset),
+            100 * correctk / len(test_loader.dataset),
+            100 * precision, 100 * recall, 100 * f1))
     acc_test.append(correct / len(test_loader.dataset))
     topkacc.append(correctk / len(test_loader.dataset))
-    return {"top1acc": acc_test[0], "topkacc": topkacc[0]}
+
+    return {"top1acc": acc_test[0], "topkacc": topkacc[0], "f1": f1, "recall": recall, "precision": precision}
+
+def f1_score_torch(prediction, ground_truth):
+    '''
+    Returns f1 score of two strings.
+    '''
+
+    with torch.no_grad():
+        y_true = F.one_hot(ground_truth, 10).to(torch.float32)
+        y_pred = F.softmax(prediction, dim=1)
+
+        tp = (y_true * y_pred).sum(dim=0).to(torch.float32)
+        tn = ((1 - y_true) * (1 - y_pred)).sum(dim=0).to(torch.float32)
+        fp = ((1 - y_true) * y_pred).sum(dim=0).to(torch.float32)
+        fn = (y_true * (1 - y_pred)).sum(dim=0).to(torch.float32)
+        print(tp, tn, fp, fn)
+        # f1 = f1.clamp(min=epsilon, max=1 - epsilon)
+        return {"tp": tp, "tn": tn, "fp": fp, "fn": fn}
+
 
 def topkaccuracy(output, target, topk=(1,)):
     """Computes the accuracy over the k top predictions for the specified values of k"""
@@ -410,7 +452,7 @@ def topkaccuracy(output, target, topk=(1,)):
 
 def load_pretrained_model(curr_model, curr_optimizer, pretrained_path):
     try:
-        model_dict = curr_model.module.state_dict()
+        model_dict = curr_model.state_dict()
         optim_dict = curr_optimizer.state_dict()
         load_pretrained = torch.load(pretrained_path)
         pretrained_model_specs = load_pretrained['model_state_dict']
@@ -421,7 +463,7 @@ def load_pretrained_model(curr_model, curr_optimizer, pretrained_path):
         # update & load
         model_dict.update(pretrained_model_specs)
         optim_dict.update(pretrained_optim_specs)
-        curr_model.module.load_state_dict(model_dict)
+        curr_model.load_state_dict(model_dict)
         curr_optimizer.load_state_dict(optim_dict)
         print(f"the model loaded successfully")
     except:
@@ -433,6 +475,7 @@ if __name__ == '__main__':
     ckpt_dir_name = "%s_%s_%s_%s_%s" % (temp_fname, trn_fname, args.working_dir,
                                         args.optimizer, args.batch_size)
     print(args)
+    print("Path: ", ckpt_dir_name)
     ckpt_dir = os.path.join(ckpt_dir_name, 'ckpt')
     os.makedirs(ckpt_dir, exist_ok=True)
     lives = 10
