@@ -16,7 +16,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 import torch.nn.functional as F
 import pickle
-
+import time
 import numpy as np
 
 import tensorly as tl
@@ -241,25 +241,26 @@ class Net(ImageClassificationBase):
     def __init__(self, in_channels, num_classes):
         #super().__init__()
         super(Net, self).__init__()
-        self.conv1 = conv_block(in_channels, 64)
-        self.conv2 = conv_block(64, 128, pool=True)
-        self.res1 = nn.Sequential(conv_block(128, 128), conv_block(128, 128), conv_block(128, 128))
+        self.conv1 = conv_block(in_channels, 32)
+        self.conv2 = conv_block(32, 64, pool=True)
+        self.res1 = nn.Sequential(conv_block(64, 64), conv_block(64, 64), conv_block(64, 64))
 
-        self.conv3 = conv_block(128, 256, pool=True)
-        self.conv4 = conv_block(256, 512, pool=True)
-        self.res2 = nn.Sequential(conv_block(512, 512), conv_block(512, 512), conv_block(512, 512))
+        self.conv3 = conv_block(64, 128, pool=True)
+        # self.conv4 = conv_block(512, 512, pool=True)
         # self.conv5 = conv_block(512, 1024, pool=True)
         # self.res3 = nn.Sequential(conv_block(1024, 1024), conv_block(1024, 1024), conv_block(1024, 1024))
         # self.conv5 = conv_block(512, 512, pool=True)
         # self.res3 = nn.Sequential(conv_block(512, 512), conv_block(512, 512), conv_block(512, 512))
+        size_n = 128
+        self.res2 = nn.Sequential(conv_block(size_n, size_n), conv_block(size_n, size_n), conv_block(size_n, size_n))
 
         if useTRN:
-            self.tcl = TCL(weight_size=(args.batch_size, 512, 2, 2), ranks=(args.batch_size, 512, 2, 2))
-            self.trl = TRL(ranks=(10, 10, 10, 10), input_size=(args.batch_size, 512, 2, 2), output_size=(args.batch_size, 10))
+            self.tcl = TCL(weight_size=(args.batch_size, size_n, 8, 8), ranks=(args.batch_size, size_n, 8, 8))
+            self.trl = TRL(ranks=(10, 1, 1, 10), input_size=(args.batch_size, size_n, 8, 8), output_size=(args.batch_size, 10))
         else:
             self.flat = nn.Flatten()
-            self.lin = nn.Linear(512 * 4 * 4, 512)
-            self.lin2 = nn.Linear(512, 10)
+            self.lin = nn.Linear(size_n * 8 * 8, size_n)
+            self.lin2 = nn.Linear(size_n, 10)
 
         # self.classifier = nn.Sequential(nn.MaxPool2d(2),
         #                                 nn.Flatten(),
@@ -270,7 +271,7 @@ class Net(ImageClassificationBase):
         out = self.conv2(out)
         out = self.res1(out) + out
         out = self.conv3(out)
-        out = self.conv4(out)
+        # out = self.conv4(out)
         out = self.res2(out) + out
         # print(out.shape)
         # out = self.conv5(out)
@@ -484,7 +485,7 @@ if __name__ == '__main__':
     valid_loss_prev = 1000000
     results = {}
     losses = []
-
+    start = time.time()
     for epoch in range(1, args.epochs):
         loss = train(epoch, writer)
         losses.append(loss)
@@ -498,6 +499,8 @@ if __name__ == '__main__':
             lives -= 1
             if lives == 0:
                 break
+    results["time"] = time.time() - start
     results["loss"] = losses
     results.update(test(model, optimizer, ckpt_dir_name))
+    print("Training Time Taking: ", results["time"])
     pickle.dump(results, open(os.path.join(ckpt_dir, 'results.p'), 'wb'))
