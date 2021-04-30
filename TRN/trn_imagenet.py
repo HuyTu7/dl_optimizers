@@ -22,7 +22,7 @@ import numpy as np
 import tensorly as tl
 import tensorly.tenalg as ta
 from tensorly.tenalg import inner
-from tensorly.random import check_random_state
+from tensorly import check_random_state
 from tensorly.decomposition import tucker
 from collections import Counter
 from imagenet_data import *
@@ -86,7 +86,9 @@ rng = check_random_state(random_state)
 
 # CIFAR 10
 
-train_loader, test_loader = data_loader("./data/", batch_size=args.batch_size, workers=2, pin_memory=True)
+
+test_loader = get_dataloader("./data/train/", True, args.batch_size, 4, 32, 1000)
+train_loader = get_dataloader("./data/val/",  False, args.batch_size, 4, 32, 1000)
 
 # %% md
 ## Model Definition
@@ -262,18 +264,18 @@ class Net(ImageClassificationBase):
     def forward(self, xb):
         out = self.conv1(xb)
         a = out.numel()
-        print(a)
+        # print(a)
         out = self.conv2(out)
         b = out.numel()
-        print(b)
+        # print(b)
         out = self.res1(out) + out
         out = self.conv3(out)
         c = out.numel()
-        print(c)
+        # print(c)
         # out = self.conv4(out)
         out = self.res2(out) + out
         d = out.numel()
-        print(d)
+        # print(d)
         # out = self.conv5(out)
         # out = self.res3(out) + out
 
@@ -421,7 +423,7 @@ def test(model, optimizer, ckpt_dir_name):
     actuals, predictions = [i.item() for i in actuals], [i.item() for i in predictions]
     # precision = confusion["tp"] / (confusion["tp"] + confusion["fp"] + epsilon)
     # recall = confusion["tp"] / (confusion["tp"] + confusion["fn"] + epsilon)
-    f1 = f1_score(actuals, predictions, average='micro')
+    f1 = f1_score(actuals, predictions, average='macro')
     precision = precision_score(actuals, predictions, average='macro')
     recall = recall_score(actuals, predictions, average='macro')
     test_loss /= len(test_loader.dataset)
