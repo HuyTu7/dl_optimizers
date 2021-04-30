@@ -87,8 +87,8 @@ rng = check_random_state(random_state)
 # CIFAR 10
 
 
-test_loader = get_dataloader("./data/train/", True, args.batch_size, 4, 32, 1000)
-train_loader = get_dataloader("./data/val/",  False, args.batch_size, 4, 32, 1000)
+test_loader = get_dataloader("./data/Imagenet32/val/", False, int(args.batch_size/2), 4, 32, 1000)
+train_loader = get_dataloader("./data/Imagenet32/train/",  True, args.batch_size, 4, 32, 1000)
 
 # %% md
 ## Model Definition
@@ -250,12 +250,12 @@ class Net(ImageClassificationBase):
         if useTRN:
             self.tcl = TCL(weight_size=(args.batch_size, size_n, 8, 8), ranks=(args.batch_size, int(size_n / 2), 2, 2))
             self.trl = TRL(ranks=(10, 1, 1, 10), input_size=(args.batch_size, int(size_n / 2), 2, 2),
-                           output_size=(args.batch_size, 10))
+                           output_size=(args.batch_size, num_classes))
         else:
             self.pool = nn.MaxPool2d(2)
             self.flat = nn.Flatten()
             self.lin = nn.Linear(size_n * 4 * 4, size_n)
-            self.lin2 = nn.Linear(size_n, 10)
+            self.lin2 = nn.Linear(size_n, num_classes)
 
         # self.classifier = nn.Sequential(nn.MaxPool2d(2),
         #                                 nn.Flatten(),
@@ -310,7 +310,7 @@ def count_parameters(model):
 
 
 weight_decay = 1e-4
-model = Net(3, 100)
+model = Net(3, 1000)
 model = model.to(device)
 
 temp_fname = "T" if args.temporal else "noT"
