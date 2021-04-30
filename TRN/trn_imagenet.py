@@ -282,25 +282,25 @@ class Net(ImageClassificationBase):
         if useTRN:
             out = self.tcl(out)
             e = out.numel()
-            print(e)
+            # print(e)
             out = self.trl(out)
             f = out.numel()
-            print(f)
+            # print(f)
         else:
             out = self.pool(out)
-            print(out.shape)
+            # print(out.shape)
             out = self.flat(out)
             e = out.numel()
-            print(out.shape)
-            print(e)
+            # print(out.shape)
+            # print(e)
             out = self.lin(out)
             f = out.numel()
-            print(f)
+            # print(f)
             out = self.lin2(out)
             g = out.numel()
-            print(g)
+            # print(g)
 
-        print("IAM DONEEEEEE")
+        # print("IAM DONEEEEEE")
         return F.log_softmax(out)
 
 
