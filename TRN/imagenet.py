@@ -88,8 +88,8 @@ rng = check_random_state(random_state)
 # CIFAR 10
 
 
-test_loader = get_dataloader("./data/Imagenet32/val/", False, int(args.batch_size/2), 4, 32, 1000)
-train_loader = get_dataloader("./data/Imagenet32/train/",  True, args.batch_size, 4, 32, 1000)
+test_loader = get_dataloader("./data/val/", False, int(args.batch_size/2), 4, 32, 1000)
+train_loader = get_dataloader("./data/train/",  True, args.batch_size, 4, 32, 1000)
 
 # %% md
 ## Model Definition
