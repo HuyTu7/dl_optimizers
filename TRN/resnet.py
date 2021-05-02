@@ -4,7 +4,13 @@ import torch.nn as nn
 from functools import partial
 from dataclasses import dataclass
 import torch.nn.functional as F
+import numpy as np
 from collections import OrderedDict
+
+
+def accuracy(outputs, labels):
+    _, preds = torch.max(outputs, dim=1)
+    return torch.tensor(torch.sum(preds == labels).item() / len(preds))
 
 
 class ImageClassificationBase(nn.Module):
