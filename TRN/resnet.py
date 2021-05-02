@@ -44,6 +44,7 @@ class Conv2dAuto(nn.Conv2d):
         super().__init__(*args, **kwargs)
         self.padding =  (self.kernel_size[0] // 2, self.kernel_size[1] // 2) # dynamic add padding based on the kernel_size
 
+conv3x3 = partial(Conv2dAuto, kernel_size=3, bias=False)
 
 class ResidualBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
