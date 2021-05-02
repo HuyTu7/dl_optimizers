@@ -189,7 +189,7 @@ class ResnetDecoder(nn.Module):
     """
     def __init__(self, in_features, n_classes):
         super().__init__()
-        self.avg = nn.AdaptiveAvgPool2d((2, 2))
+        self.avg = nn.AdaptiveAvgPool2d((1, 1))
         self.flat = nn.Flatten()
         self.lin = nn.Linear(in_features * 7 * 7, in_features)
         self.decoder = nn.Linear(in_features, n_classes)
