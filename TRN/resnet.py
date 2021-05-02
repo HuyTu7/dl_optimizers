@@ -4,9 +4,15 @@ import torch.nn as nn
 from functools import partial
 from dataclasses import dataclass
 import torch.nn.functional as F
+import tensorly as tl
+import tensorly.tenalg as ta
+from tensorly.tenalg import inner
+from tensorly.random import check_random_state
 import numpy as np
 from collections import OrderedDict
 
+random_state = 1234
+rng = check_random_state(random_state)
 
 def accuracy(outputs, labels):
     _, preds = torch.max(outputs, dim=1)
@@ -286,7 +292,6 @@ class TRL(nn.Module):
 
     def forward(self, x):
         regression_weights = tl.tucker_to_tensor((self.core, self.factors))
-        a = inner(x, regression_weights, n_modes=tl.ndim(x) - 1) + self.bias
         return inner(x, regression_weights, n_modes=tl.ndim(x) - 1) + self.bias
 
     def penalty(self, order=2):
