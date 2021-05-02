@@ -205,8 +205,8 @@ class ResNet(ImageClassificationBase):
         if not self.useTRN:
             self.decoder = ResnetDecoder(self.encoder.blocks[-1].blocks[-1].expanded_channels, n_classes)
         else:
-            self.tcl = TCL(weight_size=(batch_size, 128, 8, 8), ranks=(batch_size, int(128 / 2), 2, 2))
-            self.trl = TRL(ranks=(10, 1, 1, 10), input_size=(batch_size, int(128 / 2), 2, 2),
+            self.tcl = TCL(weight_size=(batch_size, 512, 4, 4), ranks=(batch_size, int(512 / 4), 2, 2))
+            self.trl = TRL(ranks=(10, 1, 1, 10), input_size=(batch_size, int(512 / 4), 2, 2),
                            output_size=(batch_size, n_classes))
 
     def forward(self, x):
