@@ -22,7 +22,7 @@ import numpy as np
 import tensorly as tl
 import tensorly.tenalg as ta
 from tensorly.tenalg import inner
-from tensorly import check_random_state
+from tensorly.random import check_random_state
 from tensorly.decomposition import tucker
 from collections import Counter
 from imagenet_data import *
@@ -311,7 +311,7 @@ def count_parameters(model):
 
 
 weight_decay = 1e-4
-model = ResNet(3, 1000, block=ResNetBottleNeckBlock, deepths=[3, 4, 6, 3])
+model = ResNet(3, 1000, useTRN, args.batch_size, block=ResNetBottleNeckBlock, deepths=[3, 4, 6, 3])
 model = model.to(device)
 
 temp_fname = "T" if args.temporal else "noT"
