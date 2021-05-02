@@ -150,17 +150,18 @@ class ResNetEncoder(nn.Module):
     ResNet encoder composed by increasing different layers with increasing features.
     """
 
-    def __init__(self, in_channels=3, blocks_sizes=[32, 64, 128, 256], deepths=[2, 2, 2, 2],
+    def __init__(self, in_channels=3, blocks_sizes=[16, 32, 64, 128], deepths=[2, 2, 2, 2],
                  activation=nn.ReLU, block=ResNetBasicBlock, *args, **kwargs):
         super().__init__()
 
         self.blocks_sizes = blocks_sizes
 
         self.gate = nn.Sequential(
-            nn.Conv2d(in_channels, self.blocks_sizes[0], kernel_size=7, stride=2, padding=3, bias=False),
+            nn.Conv2d(in_channels, self.blocks_sizes[0], kernel_size=3, stride=2, padding=1, bias=False),
             nn.BatchNorm2d(self.blocks_sizes[0]),
-            activation(),
-            nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+            activation()
+            # ,
+            # nn.MaxPool2d(kernel_size=3, stride=1, padding=1)
         )
 
         self.in_out_block_sizes = list(zip(blocks_sizes, blocks_sizes[1:]))
@@ -209,8 +210,8 @@ class ResNet(ImageClassificationBase):
         if not self.useTRN:
             self.decoder = ResnetDecoder(self.encoder.blocks[-1].blocks[-1].expanded_channels, n_classes)
         else:
-            self.tcl = TCL(weight_size=(batch_size, 512, 2, 2), ranks=(batch_size, 512, 2, 2))
-            self.trl = TRL(ranks=(512, 512, 2, 2), input_size=(batch_size, 512, 2, 2),
+            self.tcl = TCL(weight_size=(batch_size, 512, 2, 2), ranks=(batch_size, 128, 2, 2))
+            self.trl = TRL(ranks=(10, 1, 1, 10), input_size=(batch_size, 128, 2, 2),
                            output_size=(batch_size, n_classes))
 
     def forward(self, x):
