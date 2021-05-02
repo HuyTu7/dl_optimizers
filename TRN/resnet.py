@@ -10,6 +10,7 @@ from tensorly.tenalg import inner
 from tensorly.random import check_random_state
 import numpy as np
 from collections import OrderedDict
+from torchsummary import summary
 
 random_state = 1234
 rng = check_random_state(random_state)
@@ -149,7 +150,7 @@ class ResNetEncoder(nn.Module):
     ResNet encoder composed by increasing different layers with increasing features.
     """
 
-    def __init__(self, in_channels=3, blocks_sizes=[16, 32, 64, 128], deepths=[2, 2, 2, 2],
+    def __init__(self, in_channels=3, blocks_sizes=[32, 64, 128, 256], deepths=[2, 2, 2, 2],
                  activation=nn.ReLU, block=ResNetBasicBlock, *args, **kwargs):
         super().__init__()
 
@@ -187,12 +188,15 @@ class ResnetDecoder(nn.Module):
     """
     def __init__(self, in_features, n_classes):
         super().__init__()
-        self.avg = nn.AdaptiveAvgPool2d((1, 1))
+        self.avg = nn.AdaptiveAvgPool2d((2, 2))
+        self.flat = nn.Flatten()
+        self.lin = nn.Linear(in_features * 7 * 7, in_features)
         self.decoder = nn.Linear(in_features, n_classes)
 
     def forward(self, x):
         x = self.avg(x)
-        x = x.view(x.size(0), -1)
+        # x = x.view(x.size(0), -1)
+        x = self.flat(x)
         x = self.decoder(x)
         return x
 
@@ -205,8 +209,8 @@ class ResNet(ImageClassificationBase):
         if not self.useTRN:
             self.decoder = ResnetDecoder(self.encoder.blocks[-1].blocks[-1].expanded_channels, n_classes)
         else:
-            self.tcl = TCL(weight_size=(batch_size, 512, 4, 4), ranks=(batch_size, int(512 / 4), 2, 2))
-            self.trl = TRL(ranks=(10, 1, 1, 10), input_size=(batch_size, int(512 / 4), 2, 2),
+            self.tcl = TCL(weight_size=(batch_size, 512, 2, 2), ranks=(batch_size, 512, 2, 2))
+            self.trl = TRL(ranks=(512, 512, 2, 2), input_size=(batch_size, 512, 2, 2),
                            output_size=(batch_size, n_classes))
 
     def forward(self, x):
