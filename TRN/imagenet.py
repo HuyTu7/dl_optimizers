@@ -511,6 +511,7 @@ if __name__ == '__main__':
         loss = train(epoch, writer)
         losses.append(loss)
         if loss < valid_loss_prev:
+            lives += 1 if lives < 10 else 0
             valid_loss_prev = loss
             state = {'epoch': epoch, 'model_state_dict': model.state_dict(),
                      'optimizer_state_dict': optimizer.state_dict()}
